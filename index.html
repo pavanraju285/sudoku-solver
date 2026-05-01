@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sudoku Solver</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --panel: #ffffff;
+      --border: #cfd8e3;
+      --border-strong: #7b8aa0;
+      --text: #1f2937;
+      --muted: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --edit: #f59e0b;
+      --edit-hover: #d97706;
+      --danger: #dc2626;
+      --given-bg: #e5ecff;
+      --solved-bg: #f8fafc;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(145deg, #eef2ff, var(--bg));
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 24px 12px;
+    }
+
+    .app {
+      width: min(94vw, 560px);
+      background: var(--panel);
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      box-shadow: 0 16px 36px rgba(15, 23, 42, 0.1);
+      padding: 20px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: clamp(1.4rem, 2.6vw, 1.8rem);
+      text-align: center;
+    }
+
+    .subtitle {
+      margin: 0 0 18px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      width: 100%;
+      border: 2px solid var(--border-strong);
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .cell {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border: 1px solid var(--border);
+      font-size: clamp(1rem, 2.8vw, 1.25rem);
+      text-align: center;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+      border-radius: 0;
+    }
+
+    .cell:focus {
+      border-color: var(--primary);
+      background: #f0f6ff;
+    }
+
+    .cell.given {
+      background: var(--given-bg);
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .cell.solved {
+      background: var(--solved-bg);
+      color: #334155;
+    }
+
+    .thick-right {
+      border-right: 2px solid var(--border-strong) !important;
+    }
+
+    .thick-bottom {
+      border-bottom: 2px solid var(--border-strong) !important;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    button {
+      flex: 1;
+      border: 0;
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.06s ease, opacity 0.15s ease, background-color 0.15s ease;
+    }
+
+    button:active {
+      transform: translateY(1px);
+    }
+
+    .solve-btn {
+      background: var(--primary);
+      color: white;
+    }
+
+    .solve-btn:hover {
+      background: var(--primary-hover);
+    }
+
+    .clear-btn {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .clear-btn:hover {
+      background: #cbd5e1;
+    }
+
+    .edit-btn {
+      background: var(--edit);
+      color: #111827;
+    }
+
+    .edit-btn:hover {
+      background: var(--edit-hover);
+      color: #fff;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .message {
+      margin-top: 14px;
+      min-height: 1.3em;
+      text-align: center;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+
+    .message.error {
+      color: var(--danger);
+      font-weight: 600;
+    }
+
+    @media (max-width: 460px) {
+      .app {
+        padding: 14px;
+      }
+
+      .actions {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>Sudoku Solver</h1>
+    <p class="subtitle">Enter numbers 1-9 and click Solve</p>
+
+    <section id="board" class="board" aria-label="Sudoku Grid"></section>
+
+    <div class="actions">
+      <button class="solve-btn" id="solveBtn" type="button">Solve</button>
+      <button class="clear-btn" id="clearBtn" type="button">Clear</button>
+      <button class="edit-btn hidden" id="editBtn" type="button">Edit</button>
+    </div>
+
+    <p id="message" class="message" role="status" aria-live="polite"></p>
+  </main>
+
+  <script>
+    const boardEl = document.getElementById("board");
+    const solveBtn = document.getElementById("solveBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const editBtn = document.getElementById("editBtn");
+    const messageEl = document.getElementById("message");
+    const cells = [];
+    let preSolveBoard = null;
+
+    function createGrid() {
+      for (let row = 0; row < 9; row++) {
+        for (let col = 0; col < 9; col++) {
+          const input = document.createElement("input");
+          input.type = "text";
+          input.inputMode = "numeric";
+          input.maxLength = 1;
+          input.className = "cell";
+          input.setAttribute("aria-label", `Row ${row + 1} Column ${col + 1}`);
+
+          if ((col + 1) % 3 === 0 && col !== 8) input.classList.add("thick-right");
+          if ((row + 1) % 3 === 0 && row !== 8) input.classList.add("thick-bottom");
+
+          input.addEventListener("input", () => {
+            input.value = input.value.replace(/[^1-9]/g, "");
+            input.classList.remove("given", "solved");
+            clearMessage();
+          });
+
+          input.addEventListener("keydown", (event) => {
+            if (event.key === "Backspace" || event.key === "Delete" || event.key === "Tab" || event.key.startsWith("Arrow")) {
+              return;
+            }
+            if (!/^[1-9]$/.test(event.key)) {
+              event.preventDefault();
+            }
+          });
+
+          boardEl.appendChild(input);
+          cells.push(input);
+        }
+      }
+    }
+
+    function clearMessage() {
+      messageEl.textContent = "";
+      messageEl.classList.remove("error");
+    }
+
+    function showError(text) {
+      messageEl.textContent = text;
+      messageEl.classList.add("error");
+    }
+
+    function getBoard() {
+      const board = [];
+      for (let row = 0; row < 9; row++) {
+        const line = [];
+        for (let col = 0; col < 9; col++) {
+          const value = cells[row * 9 + col].value;
+          line.push(value ? Number(value) : 0);
+        }
+        board.push(line);
+      }
+      return board;
+    }
+
+    function setBoard(board, givenMask) {
+      for (let row = 0; row < 9; row++) {
+        for (let col = 0; col < 9; col++) {
+          const cell = cells[row * 9 + col];
+          const value = board[row][col];
+          cell.value = value === 0 ? "" : String(value);
+          cell.classList.remove("given", "solved");
+          if (value !== 0) {
+            cell.classList.add(givenMask[row][col] ? "given" : "solved");
+          }
+        }
+      }
+    }
+
+    function setCellsReadOnly(isReadOnly) {
+      cells.forEach((cell) => {
+        cell.readOnly = isReadOnly;
+      });
+    }
+
+    function isSafe(board, row, col, num) {
+      for (let i = 0; i < 9; i++) {
+        if (board[row][i] === num) return false;
+        if (board[i][col] === num) return false;
+      }
+
+      const boxRow = Math.floor(row / 3) * 3;
+      const boxCol = Math.floor(col / 3) * 3;
+      for (let r = boxRow; r < boxRow + 3; r++) {
+        for (let c = boxCol; c < boxCol + 3; c++) {
+          if (board[r][c] === num) return false;
+        }
+      }
+
+      return true;
+    }
+
+    function isValidInitialBoard(board) {
+      for (let row = 0; row < 9; row++) {
+        for (let col = 0; col < 9; col++) {
+          const value = board[row][col];
+          if (value === 0) continue;
+          board[row][col] = 0;
+          const valid = isSafe(board, row, col, value);
+          board[row][col] = value;
+          if (!valid) return false;
+        }
+      }
+      return true;
+    }
+
+    function solveSudoku(board) {
+      for (let row = 0; row < 9; row++) {
+        for (let col = 0; col < 9; col++) {
+          if (board[row][col] === 0) {
+            for (let num = 1; num <= 9; num++) {
+              if (isSafe(board, row, col, num)) {
+                board[row][col] = num;
+                if (solveSudoku(board)) return true;
+                board[row][col] = 0;
+              }
+            }
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    solveBtn.addEventListener("click", () => {
+      clearMessage();
+      const board = getBoard();
+      preSolveBoard = board.map((row) => [...row]);
+      const givenMask = board.map((row) => row.map((value) => value !== 0));
+
+      if (!isValidInitialBoard(board)) {
+        preSolveBoard = null;
+        showError("This puzzle is invalid. Please check for conflicts.");
+        return;
+      }
+
+      const solved = solveSudoku(board);
+      if (!solved) {
+        preSolveBoard = null;
+        showError("No solution exists for this puzzle.");
+        return;
+      }
+
+      setBoard(board, givenMask);
+      setCellsReadOnly(true);
+      editBtn.classList.remove("hidden");
+      messageEl.textContent = "Solved successfully.";
+    });
+
+    editBtn.addEventListener("click", () => {
+      if (!preSolveBoard) return;
+      const emptyMask = Array.from({ length: 9 }, () => Array(9).fill(false));
+      setBoard(preSolveBoard, emptyMask);
+      setCellsReadOnly(false);
+      editBtn.classList.add("hidden");
+      preSolveBoard = null;
+      clearMessage();
+    });
+
+    clearBtn.addEventListener("click", () => {
+      cells.forEach((cell) => {
+        cell.value = "";
+        cell.classList.remove("given", "solved");
+      });
+      setCellsReadOnly(false);
+      editBtn.classList.add("hidden");
+      preSolveBoard = null;
+      clearMessage();
+    });
+
+    createGrid();
+  </script>
+</body>
+</html>
