@@ -4,21 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sudoku Solver</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #f4f7fb;
-      --panel: #ffffff;
-      --border: #cfd8e3;
-      --border-strong: #7b8aa0;
-      --text: #1f2937;
-      --muted: #64748b;
-      --primary: #2563eb;
-      --primary-hover: #1d4ed8;
-      --edit: #f59e0b;
-      --edit-hover: #d97706;
-      --danger: #dc2626;
-      --given-bg: #e5ecff;
-      --solved-bg: #f8fafc;
+      --bg: #0a0a0f;
+      --panel: #121424;
+      --panel-soft: #171a2b;
+      --text: #f8fbff;
+      --muted: #8ea2cc;
+      --line: #4d65ff;
+      --line-glow: rgba(109, 131, 255, 0.55);
+      --line-strong: #8f55ff;
+      --line-strong-glow: rgba(157, 85, 255, 0.9);
+      --given: #37f6ff;
+      --solved: #57ff8f;
+      --typed: #f8fbff;
+      --solve: #37f6ff;
+      --clear: #ff4da6;
+      --edit: #ffad33;
+      --danger: #ff4d6d;
     }
 
     * {
@@ -28,8 +34,11 @@
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: linear-gradient(145deg, #eef2ff, var(--bg));
+      font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(56, 67, 255, 0.16), transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(181, 58, 255, 0.14), transparent 45%),
+        var(--bg);
       color: var(--text);
       display: grid;
       place-items: center;
@@ -39,16 +48,26 @@
     .app {
       width: min(94vw, 560px);
       background: var(--panel);
-      border: 1px solid #e2e8f0;
+      border: 1px solid #2a3158;
       border-radius: 16px;
-      box-shadow: 0 16px 36px rgba(15, 23, 42, 0.1);
+      box-shadow:
+        0 0 0 1px rgba(82, 108, 255, 0.25),
+        0 0 30px rgba(70, 104, 255, 0.22),
+        0 18px 40px rgba(0, 0, 0, 0.65);
       padding: 20px;
     }
 
     h1 {
       margin: 0 0 6px;
-      font-size: clamp(1.4rem, 2.6vw, 1.8rem);
+      font-size: clamp(1.6rem, 3vw, 2.1rem);
       text-align: center;
+      font-family: "Orbitron", "Segoe UI", sans-serif;
+      letter-spacing: 0.18em;
+      color: #b8f7ff;
+      text-shadow:
+        0 0 6px rgba(55, 246, 255, 0.9),
+        0 0 16px rgba(74, 166, 255, 0.8),
+        0 0 32px rgba(98, 71, 255, 0.75);
     }
 
     .subtitle {
@@ -58,51 +77,122 @@
       font-size: 0.95rem;
     }
 
+    .speed-control {
+      margin: 0 0 14px;
+      padding: 10px 12px;
+      border: 1px solid #2f3766;
+      border-radius: 10px;
+      background: rgba(13, 18, 38, 0.8);
+      box-shadow: inset 0 0 10px rgba(79, 112, 255, 0.2);
+    }
+
+    .speed-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 0.86rem;
+      letter-spacing: 0.04em;
+    }
+
+    .speed-label {
+      font-family: "Orbitron", "Segoe UI", sans-serif;
+      color: #a8b9ff;
+      text-transform: uppercase;
+    }
+
+    #speedValue {
+      font-family: "Orbitron", "Segoe UI", sans-serif;
+      color: #c4faff;
+      text-shadow: 0 0 8px rgba(55, 246, 255, 0.5);
+    }
+
+    .speed-slider {
+      width: 100%;
+      accent-color: #6ce7ff;
+      cursor: pointer;
+    }
+
     .board {
       display: grid;
       grid-template-columns: repeat(9, 1fr);
       width: 100%;
-      border: 2px solid var(--border-strong);
+      border: 2px solid var(--line-strong);
       border-radius: 10px;
       overflow: hidden;
-      background: #fff;
+      background: var(--panel-soft);
+      box-shadow:
+        0 0 18px var(--line-strong-glow),
+        inset 0 0 10px rgba(70, 96, 255, 0.25);
     }
 
     .cell {
       width: 100%;
       aspect-ratio: 1 / 1;
-      border: 1px solid var(--border);
+      border: 1px solid var(--line);
       font-size: clamp(1rem, 2.8vw, 1.25rem);
       text-align: center;
-      color: var(--text);
-      background: #fff;
+      color: var(--typed);
+      background: #111526;
       outline: none;
-      transition: background-color 0.15s ease, border-color 0.15s ease;
+      transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
       border-radius: 0;
+      box-shadow: inset 0 0 10px rgba(86, 123, 255, 0.22);
+      font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
     }
 
     .cell:focus {
-      border-color: var(--primary);
-      background: #f0f6ff;
+      border-color: #91deff;
+      background: #171e36;
+      box-shadow:
+        inset 0 0 14px rgba(112, 225, 255, 0.35),
+        0 0 10px rgba(94, 216, 255, 0.65);
     }
 
     .cell.given {
-      background: var(--given-bg);
+      background: #0f2030;
       font-weight: 700;
-      color: #0f172a;
+      color: var(--given);
+      text-shadow: 0 0 8px rgba(55, 246, 255, 0.9);
     }
 
     .cell.solved {
-      background: var(--solved-bg);
-      color: #334155;
+      background: #0f2418;
+      color: var(--solved);
+      text-shadow: 0 0 8px rgba(87, 255, 143, 0.85);
+      box-shadow: inset 0 0 12px rgba(87, 255, 143, 0.22), 0 0 10px rgba(87, 255, 143, 0.45);
+    }
+
+    .cell.anim-trying {
+      background: #24133f;
+      color: #f2dcff;
+      border-color: #c17bff;
+      box-shadow: inset 0 0 12px rgba(186, 110, 255, 0.45), 0 0 14px rgba(186, 110, 255, 0.9);
+      text-shadow: 0 0 10px rgba(209, 144, 255, 0.95);
+    }
+
+    .cell.anim-backtrack {
+      background: #2d101d;
+      color: #ff97c9;
+      border-color: #ff4da6;
+      box-shadow: inset 0 0 12px rgba(255, 77, 166, 0.45), 0 0 14px rgba(255, 77, 166, 0.95);
+      text-shadow: 0 0 10px rgba(255, 117, 182, 0.95);
     }
 
     .thick-right {
-      border-right: 2px solid var(--border-strong) !important;
+      border-right: 2px solid var(--line-strong) !important;
+      box-shadow:
+        inset -2px 0 8px rgba(157, 85, 255, 0.9),
+        inset 0 0 10px rgba(86, 123, 255, 0.22);
     }
 
     .thick-bottom {
-      border-bottom: 2px solid var(--border-strong) !important;
+      border-bottom: 2px solid var(--line-strong) !important;
+      box-shadow:
+        inset 0 -2px 8px rgba(157, 85, 255, 0.9),
+        inset 0 0 10px rgba(86, 123, 255, 0.22);
     }
 
     .actions {
@@ -113,13 +203,16 @@
 
     button {
       flex: 1;
-      border: 0;
+      border: 1px solid transparent;
       border-radius: 10px;
       padding: 11px 14px;
       font-size: 0.95rem;
-      font-weight: 600;
+      font-weight: 700;
       cursor: pointer;
-      transition: transform 0.06s ease, opacity 0.15s ease, background-color 0.15s ease;
+      transition: transform 0.06s ease, opacity 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+      font-family: "Orbitron", "Segoe UI", sans-serif;
+      letter-spacing: 0.04em;
+      background: #121526;
     }
 
     button:active {
@@ -127,31 +220,50 @@
     }
 
     .solve-btn {
-      background: var(--primary);
-      color: white;
+      color: var(--solve);
+      border-color: var(--solve);
+      box-shadow: 0 0 10px rgba(55, 246, 255, 0.6), inset 0 0 8px rgba(55, 246, 255, 0.2);
     }
 
     .solve-btn:hover {
-      background: var(--primary-hover);
+      box-shadow: 0 0 16px rgba(55, 246, 255, 0.85), inset 0 0 12px rgba(55, 246, 255, 0.35);
     }
 
     .clear-btn {
-      background: #e2e8f0;
-      color: #0f172a;
+      color: var(--clear);
+      border-color: var(--clear);
+      box-shadow: 0 0 10px rgba(255, 77, 166, 0.62), inset 0 0 8px rgba(255, 77, 166, 0.2);
     }
 
     .clear-btn:hover {
-      background: #cbd5e1;
+      box-shadow: 0 0 16px rgba(255, 77, 166, 0.88), inset 0 0 12px rgba(255, 77, 166, 0.35);
     }
 
     .edit-btn {
-      background: var(--edit);
-      color: #111827;
+      color: var(--edit);
+      border-color: var(--edit);
+      box-shadow: 0 0 10px rgba(255, 173, 51, 0.62), inset 0 0 8px rgba(255, 173, 51, 0.2);
     }
 
     .edit-btn:hover {
-      background: var(--edit-hover);
-      color: #fff;
+      box-shadow: 0 0 16px rgba(255, 173, 51, 0.88), inset 0 0 12px rgba(255, 173, 51, 0.35);
+    }
+
+    .stop-btn {
+      color: #d6b3ff;
+      border-color: #b87fff;
+      box-shadow: 0 0 10px rgba(184, 127, 255, 0.62), inset 0 0 8px rgba(184, 127, 255, 0.2);
+    }
+
+    .stop-btn:hover {
+      box-shadow: 0 0 16px rgba(184, 127, 255, 0.88), inset 0 0 12px rgba(184, 127, 255, 0.35);
+    }
+
+    button:disabled {
+      opacity: 0.38;
+      cursor: not-allowed;
+      box-shadow: none;
+      text-shadow: none;
     }
 
     .hidden {
@@ -164,11 +276,13 @@
       text-align: center;
       font-size: 0.95rem;
       color: var(--muted);
+      text-shadow: 0 0 6px rgba(111, 143, 255, 0.35);
     }
 
     .message.error {
       color: var(--danger);
       font-weight: 600;
+      text-shadow: 0 0 10px rgba(255, 77, 109, 0.55);
     }
 
     @media (max-width: 460px) {
@@ -184,8 +298,16 @@
 </head>
 <body>
   <main class="app">
-    <h1>Sudoku Solver</h1>
+    <h1>SUDOKU</h1>
     <p class="subtitle">Enter numbers 1-9 and click Solve</p>
+
+    <div class="speed-control">
+      <div class="speed-header">
+        <span class="speed-label">Speed</span>
+        <span id="speedValue">Normal</span>
+      </div>
+      <input id="speedSlider" class="speed-slider" type="range" min="0" max="2" step="1" value="1" aria-label="Solve animation speed">
+    </div>
 
     <section id="board" class="board" aria-label="Sudoku Grid"></section>
 
@@ -193,6 +315,7 @@
       <button class="solve-btn" id="solveBtn" type="button">Solve</button>
       <button class="clear-btn" id="clearBtn" type="button">Clear</button>
       <button class="edit-btn hidden" id="editBtn" type="button">Edit</button>
+      <button class="stop-btn hidden" id="stopBtn" type="button">Stop</button>
     </div>
 
     <p id="message" class="message" role="status" aria-live="polite"></p>
@@ -203,9 +326,16 @@
     const solveBtn = document.getElementById("solveBtn");
     const clearBtn = document.getElementById("clearBtn");
     const editBtn = document.getElementById("editBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const speedSlider = document.getElementById("speedSlider");
+    const speedValue = document.getElementById("speedValue");
     const messageEl = document.getElementById("message");
     const cells = [];
     let preSolveBoard = null;
+    let isAnimating = false;
+    let stopRequested = false;
+    const speedNames = ["Slow", "Normal", "Fast"];
+    const speedDelays = [50, 18, 5];
 
     function createGrid() {
       for (let row = 0; row < 9; row++) {
@@ -222,7 +352,7 @@
 
           input.addEventListener("input", () => {
             input.value = input.value.replace(/[^1-9]/g, "");
-            input.classList.remove("given", "solved");
+            input.classList.remove("given", "solved", "anim-trying", "anim-backtrack");
             clearMessage();
           });
 
@@ -270,9 +400,23 @@
           const cell = cells[row * 9 + col];
           const value = board[row][col];
           cell.value = value === 0 ? "" : String(value);
-          cell.classList.remove("given", "solved");
+          cell.classList.remove("given", "solved", "anim-trying", "anim-backtrack");
           if (value !== 0) {
             cell.classList.add(givenMask[row][col] ? "given" : "solved");
+          }
+        }
+      }
+    }
+
+    function applyGivenMask(board, givenMask) {
+      for (let row = 0; row < 9; row++) {
+        for (let col = 0; col < 9; col++) {
+          const cell = cells[row * 9 + col];
+          const value = board[row][col];
+          cell.value = value === 0 ? "" : String(value);
+          cell.classList.remove("given", "solved", "anim-trying", "anim-backtrack");
+          if (value !== 0 && givenMask[row][col]) {
+            cell.classList.add("given");
           }
         }
       }
@@ -282,6 +426,78 @@
       cells.forEach((cell) => {
         cell.readOnly = isReadOnly;
       });
+    }
+
+    function updateSpeedLabel() {
+      speedValue.textContent = speedNames[Number(speedSlider.value)] || "Normal";
+    }
+
+    function getAnimationDelay() {
+      return speedDelays[Number(speedSlider.value)] ?? 18;
+    }
+
+    function delay(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    function setAnimatingState(active) {
+      isAnimating = active;
+      solveBtn.disabled = active;
+      clearBtn.disabled = active;
+      editBtn.disabled = active;
+      speedSlider.disabled = active;
+      if (active) {
+        stopBtn.classList.remove("hidden");
+        stopBtn.disabled = false;
+      } else {
+        stopBtn.classList.add("hidden");
+      }
+    }
+
+    function getCell(row, col) {
+      return cells[row * 9 + col];
+    }
+
+    async function animateTry(row, col, num, stepDelay) {
+      const cell = getCell(row, col);
+      cell.value = String(num);
+      cell.classList.remove("given", "solved", "anim-backtrack");
+      cell.classList.add("anim-trying");
+      await delay(stepDelay);
+      if (stopRequested) return false;
+      return true;
+    }
+
+    async function animateConfirm(row, col, num, stepDelay) {
+      const cell = getCell(row, col);
+      cell.value = String(num);
+      cell.classList.remove("anim-trying", "anim-backtrack", "given");
+      cell.classList.add("solved");
+      await delay(stepDelay);
+      if (stopRequested) return false;
+      return true;
+    }
+
+    async function animateInvalidClear(row, col, stepDelay) {
+      const cell = getCell(row, col);
+      cell.classList.remove("anim-trying", "anim-backtrack", "solved");
+      cell.value = "";
+      await delay(stepDelay);
+      if (stopRequested) return false;
+      return true;
+    }
+
+    async function animateBacktrack(row, col, stepDelay) {
+      const cell = getCell(row, col);
+      cell.classList.remove("anim-trying", "solved");
+      cell.classList.add("anim-backtrack");
+      await delay(stepDelay);
+      if (stopRequested) return false;
+      cell.classList.remove("anim-backtrack", "given", "solved");
+      cell.value = "";
+      await delay(stepDelay);
+      if (stopRequested) return false;
+      return true;
     }
 
     function isSafe(board, row, col, num) {
@@ -315,25 +531,43 @@
       return true;
     }
 
-    function solveSudoku(board) {
+    async function solveSudokuAnimated(board, stepDelay) {
+      if (stopRequested) return null;
       for (let row = 0; row < 9; row++) {
         for (let col = 0; col < 9; col++) {
           if (board[row][col] === 0) {
             for (let num = 1; num <= 9; num++) {
+              const keepTrying = await animateTry(row, col, num, stepDelay);
+              if (!keepTrying) return null;
+
               if (isSafe(board, row, col, num)) {
                 board[row][col] = num;
-                if (solveSudoku(board)) return true;
+                const confirmed = await animateConfirm(row, col, num, stepDelay);
+                if (!confirmed) return null;
+
+                const solved = await solveSudokuAnimated(board, stepDelay);
+                if (solved === true) return true;
+                if (solved === null) return null;
+
                 board[row][col] = 0;
+                const rolledBack = await animateBacktrack(row, col, stepDelay);
+                if (!rolledBack) return null;
+              } else {
+                const cleared = await animateInvalidClear(row, col, stepDelay);
+                if (!cleared) return null;
               }
             }
+
             return false;
           }
         }
       }
+
       return true;
     }
 
-    solveBtn.addEventListener("click", () => {
+    solveBtn.addEventListener("click", async () => {
+      if (isAnimating) return;
       clearMessage();
       const board = getBoard();
       preSolveBoard = board.map((row) => [...row]);
@@ -345,8 +579,32 @@
         return;
       }
 
-      const solved = solveSudoku(board);
+      setCellsReadOnly(true);
+      editBtn.classList.add("hidden");
+      stopRequested = false;
+      setAnimatingState(true);
+      applyGivenMask(board, givenMask);
+
+      const stepDelay = getAnimationDelay();
+      const solved = await solveSudokuAnimated(board, stepDelay);
+      setAnimatingState(false);
+      stopBtn.disabled = true;
+
+      if (solved === null) {
+        const emptyMask = Array.from({ length: 9 }, () => Array(9).fill(false));
+        setBoard(preSolveBoard, emptyMask);
+        setCellsReadOnly(false);
+        editBtn.classList.add("hidden");
+        preSolveBoard = null;
+        messageEl.textContent = "Animation stopped.";
+        return;
+      }
+
       if (!solved) {
+        const emptyMask = Array.from({ length: 9 }, () => Array(9).fill(false));
+        setBoard(preSolveBoard, emptyMask);
+        setCellsReadOnly(false);
+        editBtn.classList.add("hidden");
         preSolveBoard = null;
         showError("No solution exists for this puzzle.");
         return;
@@ -358,7 +616,16 @@
       messageEl.textContent = "Solved successfully.";
     });
 
+    stopBtn.addEventListener("click", () => {
+      if (!isAnimating) return;
+      stopRequested = true;
+      stopBtn.disabled = true;
+    });
+
+    speedSlider.addEventListener("input", updateSpeedLabel);
+
     editBtn.addEventListener("click", () => {
+      if (isAnimating) return;
       if (!preSolveBoard) return;
       const emptyMask = Array.from({ length: 9 }, () => Array(9).fill(false));
       setBoard(preSolveBoard, emptyMask);
@@ -369,9 +636,10 @@
     });
 
     clearBtn.addEventListener("click", () => {
+      if (isAnimating) return;
       cells.forEach((cell) => {
         cell.value = "";
-        cell.classList.remove("given", "solved");
+        cell.classList.remove("given", "solved", "anim-trying", "anim-backtrack");
       });
       setCellsReadOnly(false);
       editBtn.classList.add("hidden");
@@ -379,6 +647,7 @@
       clearMessage();
     });
 
+    updateSpeedLabel();
     createGrid();
   </script>
 </body>
